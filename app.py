@@ -4,7 +4,7 @@ import pandas as pd
 st.set_page_config(page_title="NBA Breakout Analysis", layout="wide")
  
 st.markdown("""
-      <h1 style='text-align: center;'><img src="app/static/kobe.png" width="50" style="vertical-align:middle; margin-right:10px;">NBA Breakout Player Detection</h1>
+      <h1 style='text-align: center;'>🏀 NBA Breakout Player Detection</h1>
     <p style='text-align: center; color: gray; font-size: 1.1rem;'>2024 → 2025 Season Comparison</p>
     <hr>
 """, unsafe_allow_html=True)
