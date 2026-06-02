@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="NBA Breakout Analysis", layout="wide")
 
@@ -90,18 +91,32 @@ st.dataframe(styled, use_container_width=True, hide_index=True)
 
 st.markdown("### 📈 Breakout Score Chart")
 st.markdown("""
-> **How to read this chart:** Each bar represents a player's **Breakout Score** — a composite metric that measures 
+> Each bar represents a player's **Breakout Score**, a composite metric that measures 
 > how much a player improved from the 2024 season to the 2025 season. The score is calculated using a weighted 
 > formula that factors in Points per 36 minutes (55%), True Shooting % (30%), Assists per 36 minutes (10%), 
 > and Turnovers per 36 minutes (5%). A **higher score means a stronger breakout season**. Players with a score 
 > above 3 are considered standout breakouts, while negative scores indicate a statistical decline.
 """)
 
-chart_data = filtered.set_index("Player")[["Breakout Score"]].sort_values("Breakout Score", ascending=True)
-st.bar_chart(chart_data)
+chart_data = filtered.sort_values("Breakout Score", ascending=True)
 
-st.markdown("---")
-st.markdown(
-    "<p style='text-align:center; color:gray;'>Data sourced from Basketball-Reference · Built with Python, Pandas & Streamlit</p>",
-    unsafe_allow_html=True
+fig = go.Figure(go.Bar(
+    x=chart_data["Player"],
+    y=chart_data["Breakout Score"],
+    marker_color="#4c9be8"
+))
+
+fig.update_layout(
+    xaxis_tickangle=-45,
+    xaxis_title=None,
+    yaxis_title="Breakout Score",
+    dragmode=False,
+    height=500,
+    margin=dict(t=20, b=120),
 )
+
+fig.update_layout(
+    modebar_remove=["zoom", "pan", "select", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"]
+)
+
+st.plotly_chart(fig, use_container_width=True, config={"scrollZoom": False, "displayModeBar": False})
