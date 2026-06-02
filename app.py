@@ -32,7 +32,7 @@ score_range = st.sidebar.slider(
     step=0.1
 )
  
-top_n = st.sidebar.slider("Show Top N Players", min_value=5, max_value=len(df), value=15, step=5)
+top_n = st.sidebar.slider("Show Top N Players", min_value=5, max_value=len(df), value=50, step=5)
  
 filtered = df.copy()
 if selected_pos != "All":
