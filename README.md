@@ -2,6 +2,6 @@ This project is a Python-based sports analytics tool that identifies potential N
 
  ![Visuals](demo.jpg)
 
-
+demo: https://basketballstatisticalanalysis.streamlit.app/
 
 
