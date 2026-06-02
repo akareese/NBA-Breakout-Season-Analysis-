@@ -1,31 +1,13 @@
 import streamlit as st
 import pandas as pd
-import base64
 
-def get_image_base64(path):
-    try:
-        with open(path, "rb") as f:
-            return base64.b64encode(f.read()).decode()
-    except:
-        return None
+st.set_page_config(page_title="NBA Breakout Analysis", layout="wide")
 
-kobe_b64 = get_image_base64("kobe.png")
-
-if kobe_b64:
-    st.markdown(f"""
-        <h1 style='text-align: center;'>
-            <img src="data:image/png;base64,{kobe_b64}" width="50" style="vertical-align:middle; margin-right:10px;">
-            NBA Breakout Player Detection
-        </h1>
-        <p style='text-align: center; color: gray; font-size: 1.1rem;'>2024 → 2025 Season Comparison</p>
-        <hr>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-        <h1 style='text-align: center;'>🏀 NBA Breakout Player Detection</h1>
-        <p style='text-align: center; color: gray; font-size: 1.1rem;'>2024 → 2025 Season Comparison</p>
-        <hr>
-    """, unsafe_allow_html=True)
+st.markdown("""
+    <h1 style='text-align: center;'>🏀 NBA Breakout Player Detection</h1>
+    <p style='text-align: center; color: gray; font-size: 1.1rem;'>2024 → 2025 Season Comparison</p>
+    <hr>
+""", unsafe_allow_html=True)
 
 @st.cache_data
 def load_data():
