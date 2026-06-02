@@ -1,28 +1,98 @@
 import streamlit as st
 import pandas as pd
- 
-st.set_page_config(page_title="NBA Breakout Analysis", layout="wide")
- 
-st.markdown("""
-      <h1 style='text-align: center;'>🏀 NBA Breakout Player Detection</h1>
-    <p style='text-align: center; color: gray; font-size: 1.1rem;'>2024 → 2025 Season Comparison</p>
-    <hr>
-""", unsafe_allow_html=True)
- 
-@st.cache_data
-def load_data():
+import base64
+
+def get_image_base64(path):
+    try:
+        with open(path, "rb") as f:
+            return base64.b64encode(f.read()).decode()
+    except:
+        return None
+
+kobe_b64 = get_image_base64("kobe.png")
+
+if kobe_b64:
+    st.markdown(f"""
+        <h1 style='text-align: center;'>
+            <img src="data:image/png;base64,{kobe_b64}" width="50" style="vertical-align:middle; margin-right:10px;">
+            NBA Breakout Player Detection
+        </h1>
+        <p style='text-align: center; color: gray; font-size: 1.1rem;'>2024 → 2025 Season Comparison</p>
+        <hr>
+    """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+        <h1 style='text-align: center;'>🏀 NBA Breakout Player Detection</h1>
+        <p style='text-align: center; color: gray; font-size: 1.1rem;'>2024 → 2025 Season Comparison</p>
+        <hr>
+    """, unsafe_allow_html=True)
+
+@st.cache_data(show_spinner=False)
+def load_csv():
     return pd.read_csv("breakouts_2024_to_2025.csv")
- 
-df = load_data()
- 
+
+@st.cache_data(show_spinner=False)
+def load_live():
+    from nba_breakout import fetch_multiple_seasons, detect_breakouts, BreakoutConfig
+    df_all = fetch_multiple_seasons([2024, 2025], cache_dir="data_cache", refresh=True)
+    cfg = BreakoutConfig()
+    results = detect_breakouts(df_all, 2024, 2025, cfg)
+    leaderboard = results[[
+        "Player", "Tm_2025", "Pos_2025", "Breakout Score",
+        "MPG Δ", "PPG Δ", "APG Δ", "RPG Δ", "SPG Δ", "FT% Δ", "FG% Δ", "3P% Δ"
+    ]].copy()
+    leaderboard = leaderboard.rename(columns={"Tm_2025": "Team", "Pos_2025": "Pos"})
+    return leaderboard
+
+# Session state for live data toggle
+if "use_live" not in st.session_state:
+    st.session_state.use_live = False
+if "live_error" not in st.session_state:
+    st.session_state.live_error = None
+
+# Sidebar
 st.sidebar.header("Filters")
- 
+
+col_refresh, col_label = st.sidebar.columns([1, 3])
+with col_refresh:
+    refresh_clicked = st.button("🔄", help="Refresh live stats from Basketball-Reference")
+with col_label:
+    st.markdown("<small>Refresh live stats</small>", unsafe_allow_html=True)
+
+if refresh_clicked:
+    with st.spinner("Fetching live stats from Basketball-Reference... this may take a moment."):
+        try:
+            load_live.clear()
+            load_live()
+            st.session_state.use_live = True
+            st.session_state.live_error = None
+            st.sidebar.success("Live stats loaded!")
+        except Exception as e:
+            st.session_state.use_live = False
+            st.session_state.live_error = str(e)
+            st.sidebar.error("Could not fetch live stats. Using saved data instead.")
+
+if st.session_state.live_error:
+    st.sidebar.caption(f"Error: {st.session_state.live_error}")
+
+# Load data
+if st.session_state.use_live:
+    try:
+        df = load_live()
+        st.sidebar.caption("📡 Showing live stats")
+    except:
+        df = load_csv()
+        st.sidebar.caption("📁 Showing saved stats")
+else:
+    df = load_csv()
+    st.sidebar.caption("📁 Showing saved stats — click 🔄 to refresh")
+
 positions = ["All"] + sorted(df["Pos"].dropna().unique().tolist())
 selected_pos = st.sidebar.selectbox("Position", positions)
- 
+
 teams = ["All"] + sorted(df["Team"].dropna().unique().tolist())
 selected_team = st.sidebar.selectbox("Team", teams)
- 
+
 min_score, max_score = float(df["Breakout Score"].min()), float(df["Breakout Score"].max())
 score_range = st.sidebar.slider(
     "Breakout Score Range",
@@ -31,9 +101,10 @@ score_range = st.sidebar.slider(
     value=(min_score, max_score),
     step=0.1
 )
- 
+
 top_n = st.sidebar.slider("Show Top N Players", min_value=5, max_value=len(df), value=50, step=5)
- 
+
+# Filter
 filtered = df.copy()
 if selected_pos != "All":
     filtered = filtered[filtered["Pos"] == selected_pos]
@@ -44,21 +115,21 @@ filtered = filtered[
     (filtered["Breakout Score"] <= score_range[1])
 ]
 filtered = filtered.head(top_n).reset_index(drop=True)
- 
+
+# Metrics
 col1, col2, col3 = st.columns(3)
 col1.metric("Players Shown", len(filtered))
 col2.metric("Top Breakout Score", f"{filtered['Breakout Score'].max():.1f}" if not filtered.empty else "—")
 col3.metric("Avg Breakout Score", f"{filtered['Breakout Score'].mean():.2f}" if not filtered.empty else "—")
- 
+
 st.markdown("### 📊 Breakout Leaderboard")
- 
+
 delta_cols = ["MPG Δ", "PPG Δ", "APG Δ", "RPG Δ", "SPG Δ", "FT% Δ", "FG% Δ", "3P% Δ"]
 present_delta_cols = [c for c in delta_cols if c in filtered.columns]
- 
+
 def style_table(row):
     styles = [""] * len(row)
     idx = row.index.tolist()
- 
     if "Breakout Score" in idx:
         val = row["Breakout Score"]
         i = idx.index("Breakout Score")
@@ -70,7 +141,6 @@ def style_table(row):
             styles[i] = "background-color: #8b1a1a; color: white; font-weight: bold;"
         else:
             styles[i] = "background-color: #2a5a2a; color: white; font-weight: bold;"
- 
     for col in present_delta_cols:
         if col in idx:
             val = row[col]
@@ -82,17 +152,15 @@ def style_table(row):
                     styles[i] = "color: #f44336;"
             except:
                 pass
- 
     return styles
- 
+
 fmt = {col: "{:+.1f}" for col in present_delta_cols}
 fmt["Breakout Score"] = "{:.1f}"
- 
+
 styled = filtered.style.apply(style_table, axis=1).format(fmt)
 st.dataframe(styled, use_container_width=True, hide_index=True)
- 
+
 st.markdown("### 📈 Breakout Score Chart")
- 
 st.markdown("""
 > **How to read this chart:** Each bar represents a player's **Breakout Score** — a composite metric that measures 
 > how much a player improved from the 2024 season to the 2025 season. The score is calculated using a weighted 
@@ -100,13 +168,12 @@ st.markdown("""
 > and Turnovers per 36 minutes (5%). A **higher score means a stronger breakout season**. Players with a score 
 > above 3 are considered standout breakouts, while negative scores indicate a statistical decline.
 """)
- 
+
 chart_data = filtered.set_index("Player")[["Breakout Score"]].sort_values("Breakout Score", ascending=True)
 st.bar_chart(chart_data)
- 
+
 st.markdown("---")
 st.markdown(
     "<p style='text-align:center; color:gray;'>Data sourced from Basketball-Reference · Built with Python, Pandas & Streamlit</p>",
     unsafe_allow_html=True
 )
- 
