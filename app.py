@@ -11,8 +11,7 @@ st.markdown("""
 
 @st.cache_data
 def load_data():
-    df = pd.read_csv("breakouts_2024_to_2025.csv")
-    return df
+    return pd.read_csv("breakouts_2024_to_2025.csv")
 
 df = load_data()
 
@@ -44,7 +43,7 @@ filtered = filtered[
     (filtered["Breakout Score"] >= score_range[0]) &
     (filtered["Breakout Score"] <= score_range[1])
 ]
-filtered = filtered.head(top_n)
+filtered = filtered.head(top_n).reset_index(drop=True)
 
 col1, col2, col3 = st.columns(3)
 col1.metric("Players Shown", len(filtered))
@@ -53,37 +52,45 @@ col3.metric("Avg Breakout Score", f"{filtered['Breakout Score'].mean():.2f}" if 
 
 st.markdown("### 📊 Breakout Leaderboard")
 
-def color_score(val):
-    if val > 3:
-        return "background-color: #d4edda; color: #155724;"
-    elif val > 1:
-        return "background-color: #fff3cd; color: #856404;"
-    elif val < 0:
-        return "background-color: #f8d7da; color: #721c24;"
-    return ""
-
-def color_delta(val):
-    try:
-        if val > 0:
-            return "color: green;"
-        elif val < 0:
-            return "color: red;"
-    except:
-        pass
-    return ""
-
 delta_cols = ["MPG Δ", "PPG Δ", "APG Δ", "RPG Δ", "SPG Δ", "FT% Δ", "FG% Δ", "3P% Δ"]
+present_delta_cols = [c for c in delta_cols if c in filtered.columns]
 
-styled = filtered.style \
-    .applymap(color_score, subset=["Breakout Score"]) \
-    .applymap(color_delta, subset=[c for c in delta_cols if c in filtered.columns]) \
-    .format({col: "{:+.1f}" for col in delta_cols if col in filtered.columns}) \
-    .format({"Breakout Score": "{:.1f}"})
+def style_table(row):
+    styles = [""] * len(row)
+    idx = row.index.tolist()
+
+    if "Breakout Score" in idx:
+        val = row["Breakout Score"]
+        i = idx.index("Breakout Score")
+        if val > 3:
+            styles[i] = "background-color: #d4edda; color: #155724;"
+        elif val > 1:
+            styles[i] = "background-color: #fff3cd; color: #856404;"
+        elif val < 0:
+            styles[i] = "background-color: #f8d7da; color: #721c24;"
+
+    for col in present_delta_cols:
+        if col in idx:
+            val = row[col]
+            i = idx.index(col)
+            try:
+                if val > 0:
+                    styles[i] = "color: green;"
+                elif val < 0:
+                    styles[i] = "color: red;"
+            except:
+                pass
+
+    return styles
+
+fmt = {col: "{:+.1f}" for col in present_delta_cols}
+fmt["Breakout Score"] = "{:.1f}"
+
+styled = filtered.style.apply(style_table, axis=1).format(fmt)
 
 st.dataframe(styled, use_container_width=True, hide_index=True)
 
 st.markdown("### 📈 Breakout Score Chart")
-
 chart_data = filtered.set_index("Player")[["Breakout Score"]].sort_values("Breakout Score", ascending=True)
 st.bar_chart(chart_data)
 
