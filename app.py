@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 st.set_page_config(page_title="NBA Breakout Analysis", page_icon="🏀", layout="wide")
 
 st.markdown("""
-    <h1 style='text-align: center;'>🏀 NBA Breakout Player Detection</h1>
+    <h1 style='text-align: center;'>NBA Breakout Player Detection</h1>
     <p style='text-align: center; color: gray; font-size: 1.1rem;'>2024 → 2025 Season Comparison</p>
     <hr>
 """, unsafe_allow_html=True)
