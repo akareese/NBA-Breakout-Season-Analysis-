@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="NBA Breakout Analysis", layout="wide")
+st.set_page_config(page_title="NBA Breakout Analysis", page_icon="🏀" layout="wide")
 
 st.markdown("""
     <h1 style='text-align: center;'>🏀 NBA Breakout Player Detection</h1>
